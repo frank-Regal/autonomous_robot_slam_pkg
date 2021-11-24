@@ -13,13 +13,9 @@
 //  If not, see <http://www.gnu.org/licenses/>.
 //========================================================================
 /*!
-\file           particle-filter.h
-\brief          Particle Filter Interface
-\university:    The University of Texas at Austin
-\class:         CS 393r Autonomous Robots
-\assignment:    Assignment 2 - Particle Filter
-\author:        Mary Tebben & Frank Regal
-\adopted from:  Dr. Joydeep Biswas
+\file    particle-filter.h
+\brief   Particle Filter Interface
+\author  Joydeep Biswas, (C) 2018
 */
 //========================================================================
 
@@ -31,9 +27,12 @@
 #include "shared/math/line2d.h"
 #include "shared/util/random.h"
 #include "vector_map/vector_map.h"
+#include "amrl_msgs/VisualizationMsg.h"
 
 #ifndef SRC_PARTICLE_FILTER_H_
 #define SRC_PARTICLE_FILTER_H_
+
+using amrl_msgs::VisualizationMsg;
 
 namespace particle_filter {
 
@@ -42,7 +41,6 @@ struct Particle {
   float angle;
   double weight;
 };
-
 
 class ParticleFilter {
  public:
@@ -57,7 +55,8 @@ class ParticleFilter {
                     float angle_max);
 
   // Predict particle motion based on odometry.
-  void Predict(const Eigen::Vector2f &odom_cur_pos, const float &odom_cur_angle);
+  void Predict(const Eigen::Vector2f& odom_loc,
+                       const float odom_angle);
 
   // Initialize the robot location.
   void Initialize(const std::string& map_file,
@@ -91,10 +90,7 @@ class ParticleFilter {
                               float angle_max,
                               std::vector<Eigen::Vector2f>* scan);
 
- double get_angle_diff(double a, double b);
-  
  private:
-
   // List of particles being tracked.
   std::vector<Particle> particles_;
 
@@ -105,12 +101,18 @@ class ParticleFilter {
   util_random::Random rng_;
 
   // Previous odometry-reported locations.
-  Eigen::Vector2f odom_old_pos;
-  float odom_old_angle;
+  Eigen::Vector2f prev_odom_loc_;
+  float prev_odom_angle_;
   bool odom_initialized_;
-  bool predict_step_done_;
+  const Eigen::Vector2f kLaserLoc = Eigen::Vector2f(0.2, 0);
 
+  // constants
+  const float HORIZON = 36.0;
+  const float kEpsilon = 1e-4;
 
+  float d_dist;
+  float d_angle;
+  bool updated;
 };
 }  // namespace slam
 

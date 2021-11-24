@@ -13,13 +13,10 @@
 //  If not, see <http://www.gnu.org/licenses/>.
 //========================================================================
 /*!
-\file           particle-filter-main.cc
-\brief          Main entry point for particle filter based
-\university:    The University of Texas at Austin
-\class:         CS 393r Autonomous Robots
-\assignment:    Assignment 2 - Particle Filter
-\author:        Mary Tebben & Frank Regal
-\adopted from:  Dr. Joydeep Biswas
+\file    particle-filter-main.cc
+\brief   Main entry point for particle filter based
+         mobile robot localization
+\author  Joydeep Biswas, (C) 2019
 */
 //========================================================================
 
@@ -67,6 +64,7 @@ using visualization::DrawArc;
 using visualization::DrawPoint;
 using visualization::DrawLine;
 using visualization::DrawParticle;
+using visualization::DrawCross;
 
 // Create command line arguements
 DEFINE_string(laser_topic, "/scan", "Name of ROS topic for LIDAR data");
@@ -105,13 +103,14 @@ void InitializeMsgs() {
 void PublishParticles() {
   vector<particle_filter::Particle> particles;
   particle_filter_.GetParticles(&particles);
+  
   for (const particle_filter::Particle& p : particles) {
     DrawParticle(p.loc, p.angle, vis_msg_);
   }
 }
 
 void PublishPredictedScan() {
-  const uint32_t kColor = 0xd600a8;
+  const uint32_t kColor = 0x9842f5;
   Vector2f robot_loc(0, 0);
   float robot_angle(0);
   particle_filter_.GetLocation(&robot_loc, &robot_angle);
@@ -127,7 +126,6 @@ void PublishPredictedScan() {
       &predicted_scan);
   for (const Vector2f& p : predicted_scan) {
     DrawPoint(p, kColor, vis_msg_);
-    DrawLine(robot_loc, p, kColor, vis_msg_);
   }
 }
 
@@ -188,19 +186,13 @@ void OdometryCallback(const nav_msgs::Odometry& msg) {
   if (FLAGS_v > 0) {
     printf("Odometry t=%f\n", msg.header.stamp.toSec());
   }
-
   const Vector2f odom_loc(msg.pose.pose.position.x, msg.pose.pose.position.y);
-  const float odom_angle = 2.0 * atan2(msg.pose.pose.orientation.z, msg.pose.pose.orientation.w);
-
-  // Update Location of Each Particle Based on New Odom Data
-  particle_filter_.Predict(odom_loc,odom_angle);
-
-  // Update Best Location of Robot
+  const float odom_angle =
+      2.0 * atan2(msg.pose.pose.orientation.z, msg.pose.pose.orientation.w);
+  particle_filter_.Predict(odom_loc, odom_angle);
   Vector2f robot_loc(0, 0);
   float robot_angle(0);
-  
   particle_filter_.GetLocation(&robot_loc, &robot_angle);
-
   amrl_msgs::Localization2DMsg localization_msg;
   localization_msg.pose.x = robot_loc.x();
   localization_msg.pose.y = robot_loc.y();
@@ -258,8 +250,6 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "particle_filter", ros::init_options::NoSigintHandler);
   ros::NodeHandle n;
   InitializeMsgs();
-
-  std::cout << "Here we go again..." << std::endl;
 
   visualization_publisher_ =
       n.advertise<VisualizationMsg>("visualization", 1);
